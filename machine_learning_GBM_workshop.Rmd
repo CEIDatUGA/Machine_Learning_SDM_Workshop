@@ -121,7 +121,7 @@ GBIF.org (11 December 2025) GBIF Occurrence Download https://doi.org/10.15468/dl
 ```{r }
 # Loading the dataset
 
-AGTF_raw <- readr::read_delim("american_green_tree_frog.csv", delim = "\t", escape_double = FALSE, 
+AGTF_raw <- readr::read_delim("data/american_green_tree_frog.csv", delim = "\t", escape_double = FALSE, 
     col_names = TRUE, na = c("", "NA"))
 
 head(AGTF_raw)
