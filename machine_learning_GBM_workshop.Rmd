@@ -165,6 +165,7 @@ plot(contiguous_us_vect ,add=TRUE)
 dev.off()
 
 ```
+
 Transforming the points (vector format) to raster
 
 ```{r}
