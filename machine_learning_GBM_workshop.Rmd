@@ -1,7 +1,7 @@
 ---
-title: "Machine learning species distribution models in R: from zero to pro(blems)"
+title: "Machine learning species distribution models in R: Zero to pro(blems)"
 author: "Victor Felix"
-date: "2026-01-05"
+date: "2026-04-05"
 output:
   pdf_document: default
   html_document: default
@@ -11,7 +11,7 @@ output:
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
-Let's load some libraries
+Let's start loading some libraries
 
 ```{r}
 #install.packages("pROC") # if not installed
@@ -38,28 +38,30 @@ library(ggplot2)
 library(caret)
 ```
 
-Here I get the shapefiles of each country in our study region which I will use for data selection later.
+Here I get the shapefile of the contiguous U.S.
 
 ```{r}
 # US shapefiles from tigris
 us_states <- tigris::states(year = 2023, cb = TRUE)
-# plot(us_states) # inspect data
 
-# Selecting only the contiguous US
-contiguous_us <- us_states[!us_states$STUSPS %in% c("AK", "HI", "PR", "GU", "VI", "MP", "AS"), ]
+# Convert immediately to terra SpatVector
+us_states_vect <- terra::vect(us_states)
 
-# Combine the states on the contiguous US
-contiguous_us_sf <- sf::st_union(contiguous_us)
+# Select only the contiguous US
+contiguous_us <- us_states_vect[!us_states_vect$STUSPS %in% 
+                                  c("AK", "HI", "PR", "GU", "VI", "MP", "AS"), ]
 
-# Transform into a vector - not an sf object
-contiguous_us_vect <- terra::vect(contiguous_us_sf)
+# Dissolve all states into one geometry
+contiguous_us_vect <- terra::aggregate(contiguous_us)
 
-# Plot contigous US
+# Save figure for the presentation
 png("figures/contiguous_us_map.png", width = 1000, height = 800, res = 250)
 plot(contiguous_us_vect, main="Contiguous United States")
 dev.off()
 
+# Plot contiguous US
 plot(contiguous_us_vect)
+
 ```
 
 # Downloading WorldClim rasters
@@ -67,11 +69,12 @@ plot(contiguous_us_vect)
 ```{r}
 # Downloading WorldClim rasters
 worldclim_rasters<-geodata::worldclim_global(var = "bio", # variables to download
-                                 res = 5, # choose the resolution
+                                 res = 5, # 5 arc-minute or ~81 km²
                                  path = "data/") # path were data is saved
+# Plot rasters
 plot(worldclim_rasters)
 ```
-Download WorldClim data.
+Renaming WorldClim data based on simplified variables names.
 
 https://www.worldclim.org/data/bioclim.html#google_vignette
 
@@ -91,26 +94,26 @@ base::names(worldclim_rasters) <- new_names
 plot(worldclim_rasters)
 
 ```
-Crop the stacked raster to the size of the contigous US and rename for easier interpretation.
+Cropping and masking the stacked raster to the size of the contiguous U.S.
 
 ```{r}
-# Define coordinates for contiguous US
+# Defining some coordinates for contiguous US
 us_extent <- ext(-125, -66.5, 24.5, 49.5)  # approximate lat/lon 
 
-# Crop the rasters
+# Cropping and masking the rasters
 worldclim_rasters_us <- terra::crop(worldclim_rasters, contiguous_us_vect)%>%
   mask(contiguous_us_vect)
 
-# save
+# Save figure for the presentation
 png("figures/worldclim_rasters.png", width = 1000, height = 600, res = 150)
 plot(worldclim_rasters_us)
 dev.off()
 
-# plot
+# Plot
 plot(worldclim_rasters_us)
 ```
 
-Download the American green tree frog data.
+Download American Green Treefrog data.
 
 https://www.gbif.org/species/10810025
 
@@ -119,7 +122,7 @@ Dryophytes cinereus (Schneider, 1799)
 GBIF.org (11 December 2025) GBIF Occurrence Download https://doi.org/10.15468/dl.kg3eax
 
 ```{r }
-# Loading the dataset
+# Loading the dataset - this is standard for GBIF data on this format
 
 AGTF_raw <- readr::read_delim("data/american_green_tree_frog.csv", delim = "\t", escape_double = FALSE, 
     col_names = TRUE, na = c("", "NA"))
@@ -127,7 +130,7 @@ AGTF_raw <- readr::read_delim("data/american_green_tree_frog.csv", delim = "\t",
 head(AGTF_raw)
 ```
 
-Getting coordinates from the GIBF Vespa Velutina data.
+Getting the coordinates from the GBIF occurrences.
 
 ```{r}
 # Create a data frame using latitudes and longitudes
@@ -382,8 +385,8 @@ levels(train.data$Label) <- c("Background", "Presence") # Setup levels of the ta
 
 # Define a tuning grid for model optimization
 tune_grid <- expand.grid(
-  interaction.depth = seq(3,4,1), # tree depth for complex relationships
-  n.trees = c(360), # number of trees
+  interaction.depth = seq(2,3,1),#seq(3,4,1), # tree depth for complex relationships
+  n.trees = c(380), # number of trees
   shrinkage = c(0.01), # small learning rate
   n.minobsinnode = c(50) # leaf size - minimum number of observation that need to be in each leaf so the split exist
 )
