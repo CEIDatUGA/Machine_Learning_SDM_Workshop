@@ -134,23 +134,30 @@ Getting the coordinates from the GBIF occurrences.
 
 ```{r}
 # Create a data frame using latitudes and longitudes
+# id == 1 means presence
 AGTF_occurences <- base::data.frame("latitude" = AGTF_raw$decimalLatitude, 
                             "longitude" = AGTF_raw$decimalLongitude,
                             "id"=1)
-# NROW(AGTF_raw_data)  
-  
+
 # Remove NAs - places without Latitude or Longitude data
 AGTF_occurences <- stats::na.omit(AGTF_occurences)
-# NROW(AGTF_raw_data) 
 
+head(AGTF_occurences)
+```
+
+Plotting these occurrences in a map so we can see.
+We will use the contiguous US vector to select only occurrences in the study region. 
+
+```{r}
 # Create a vector with these locations (shapefile points)
 AGTF_occurences <- terra::vect(AGTF_occurences, geom = c("longitude", "latitude"))
 
 # Plotting data and contiguous US
-plot(AGTF_occurences, main="AGTF occurences")
+plot(AGTF_occurences, main="Green Treefrog occurences from GBIF")
 plot(contiguous_us_vect, add=TRUE)
 ```
-We will use the contiguous US vector to select only occurrences in the study region. 
+
+Keep only occurrences in the contiguous U.S.
 
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 # this step take some time to run  
@@ -158,35 +165,51 @@ We will use the contiguous US vector to select only occurrences in the study reg
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
 ```{r}
-# Crop the raster using the shapefile's extent
+# Crop the raster using the contiguous U.S. area
 AGTF_occurences_US <- terra::crop(AGTF_occurences, contiguous_us_vect)
 
-# save
+# Saving figure for presentation
 png("figures/occurrences_points.png", width = 1000, height = 600, res = 150)
-plot(AGTF_occurences_US, main="Green Treefrog occurrences points")
+plot(AGTF_occurences_US, main="Green Treefrog occurrences")
 plot(contiguous_us_vect ,add=TRUE)
 dev.off()
 
+plot(AGTF_occurences_US, main="Green Treefrog occurrences")
+plot(contiguous_us_vect ,add=TRUE)
 ```
 
-Transforming the points (vector format) to raster
+Transforming the occurrences (points in a vector format) to a raster format.
+For this, we use a WorldClim raster as reference and create a new raster based on it. 
+The new raster will have on each pixel cell the sum of Green Treefrog occurrences in that area.
 
 ```{r}
-# Computing the number of occurrences in each raster cell.
+# Creating the new raster based on a WorldClim raster and
+# Counting the number of occurrences in each raster cell
+# Empty pixels are set to 0.
 AGTF_occurences_raster <- terra::rasterize(AGTF_occurences_US, field="id", worldclim_rasters_us$AnnMeanTemp, fun = "count", background = 0, filename="data/AGTF_count.tif", overwrite=TRUE)
 
-# save
-png("figures/occurrences_raster.png", width = 1000, height = 600, res = 150)
-plot(AGTF_occurences_raster)
-plot(contiguous_us_vect, border = "white",add=TRUE, main="Green Treefrog raster", sub = "Number of occurences per raster cell")
+# Save figure for presentation
+png("figures/occurrences_raster.png", width = 1000, height = 650, res = 150)
+
+plot(AGTF_occurences_raster,
+     main = "Green Treefrog: Number of occurrences per raster pixel ~81 km²",
+     sub = "Number of occurrences per raster cell ~81 km²")
+
+plot(contiguous_us_vect, border = "white", add = TRUE)
+
 dev.off()
 
-# Plot raster
-plot(AGTF_occurences_raster)
-plot(contiguous_us_vect, border = "white",add=TRUE, main="American Green Treefrog raster", sub = "Number of occurences per raster pixel")
+# Plot figure
+plot(AGTF_occurences_raster,
+     main = "Green Treefrog: Number of occurrences per raster pixel ~81 km²",
+     sub = "Number of occurrences per raster pixel ~81 km²")
+
+plot(contiguous_us_vect, border = "white", add = TRUE)
 
 ```
-Plotting with ggplot for better visualization of occurrences 
+
+It is better to transform this raster to a dataframe and plot with ggplot
+This will help us to visualize the number of Green Treefrogs occurrences
 
 ```{r}
 # Convert raster to data frame to plot with ggplot
@@ -196,8 +219,10 @@ colnames(AGTF_occurences_df) <- c("x", "y", "value")
 # Filter dataframe to keep only values > 0
 AGTF_occurences_df <- AGTF_occurences_df[AGTF_occurences_df$value > 0, ]
 
+
 AGTF_occurences_plot<-ggplot() +
-  geom_sf(data = contiguous_us_sf, fill = "white", color = "black", linewidth = 0.2) +
+  geom_sf(data = sf::st_as_sf(contiguous_us_vect), # convert to sf to plot
+          fill = "white", color = "black", linewidth = 0.2) +
   geom_point(
     data = AGTF_occurences_df,
     aes(x = x, y = y, size = value, color = value),
@@ -210,8 +235,8 @@ AGTF_occurences_plot<-ggplot() +
 ) +
   scale_color_gradient(low = "orange", high = "darkred", name = "") +
   labs(
-    title = "Green Tree Frog occurrences",
-    subtitle = "Number of occurences per raster pixel",
+    title = "Green Treefrog occurrences",
+    subtitle = "Number of occurences per ~81 km² (raster pixel size)",
     x = NULL,
     y = NULL
   ) +
@@ -227,7 +252,9 @@ AGTF_occurences_plot
 ggsave("figures/density_plot.jpg", AGTF_occurences_plot, width = 8,
   height = 6,  dpi = 300)
 ```
-Let's say that at least one occurrence per pixel represent presence
+
+Now, for modelling purposes, we will assume that locations with at least one occurrence per pixel represent a presence point of the Green Treefrog species.
+
 
 ```{r}
 
