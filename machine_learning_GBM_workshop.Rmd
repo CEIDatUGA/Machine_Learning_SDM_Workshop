@@ -41,10 +41,10 @@ library(caret)
 Here I get the shapefile of the contiguous U.S.
 
 ```{r}
-# US shapefiles from tigris
+# US states dataframe with geometries 
 us_states <- tigris::states(year = 2023, cb = TRUE)
 
-# Convert immediately to terra SpatVector
+# Convert to terra SpatVector
 us_states_vect <- terra::vect(us_states)
 
 # Select only the contiguous US
