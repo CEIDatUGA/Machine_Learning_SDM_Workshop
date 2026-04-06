@@ -48,8 +48,7 @@ us_states <- tigris::states(year = 2023, cb = TRUE)
 us_states_vect <- terra::vect(us_states)
 
 # Select only the contiguous US
-contiguous_us <- us_states_vect[!us_states_vect$STUSPS %in% 
-                                  c("AK", "HI", "PR", "GU", "VI", "MP", "AS"), ]
+contiguous_us <- us_states_vect[!us_states_vect$STUSPS %in% c("AK", "HI", "PR", "GU", "VI", "MP", "AS"), ]
 
 # Dissolve all states into one geometry
 contiguous_us_vect <- terra::aggregate(contiguous_us)
