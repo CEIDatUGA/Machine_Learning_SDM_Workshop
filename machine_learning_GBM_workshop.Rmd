@@ -1,6 +1,6 @@
 ---
 title: "Machine learning species distribution models in R: Zero to pro(blems)"
-author: "Victor Felix"
+author: "Victor Felix (victorfelix@uga.edu)"
 date: "2026-04-07"
 output:
   pdf_document: default
@@ -49,6 +49,8 @@ us_states_vect <- terra::vect(us_states)
 
 # Select only the contiguous US
 contiguous_us <- us_states_vect[!us_states_vect$STUSPS %in% c("AK", "HI", "PR", "GU", "VI", "MP", "AS"), ]
+
+# AK:	Alaska, HI:	Hawaii, PR:	Puerto Rico, GU:	Guam, VI:	U.S. Virgin Islands, MP:	Northern Mariana Islands, AS:	American Samoa
 
 # Dissolve all states into one geometry
 contiguous_us_vect <- terra::aggregate(contiguous_us)
@@ -364,24 +366,24 @@ sample_indices <- base::sample(seq_len(nrow(background_points)), size = 0.7 * nr
 # Create a sampled dataframe with 70% of the data
 bg_70 <- background_points[sample_indices, ]
 
-# Randomly sample 50% of the presence row indices
+# Randomly sample 70% of the presence row indices
 sample_indices <- base::sample(seq_len(nrow(presence_points)), size = 0.7 * nrow(presence_points))
 # Create a sampled dataframe with 70% of the data
 presence_70 <- presence_points[sample_indices, ]
 
-#rbind 50% of presence and background for training data
+#rbind 70% of presence and background for training data
 train.data.70<-base::rbind(presence_70,bg_70)
 
-# Get the 50% data left for presence and background data 
+# Get the 30% data left for presence and background data 
 test_presence_30 <- presence_points[-sample_indices, ]
 test_bg_30 <- background_points[-sample_indices, ]
 
-#rbind the 50% left of presence and background for testing
+#rbind the 30% left of presence and background for testing
 test.data.30<-rbind(test_bg_30,test_presence_30)
 
 ```
 
-Remove some columns I don't want to train
+Model setup and tuning
 
 ```{r}
 ############
@@ -390,7 +392,7 @@ set.seed(11)
 # Choosing training data
 train.data <- train.data.70
 train.data$Label <- as.factor(train.data$Label) # Define target column as a factor
-levels(train.data$Label) <- c("Background", "Presence") # Setup levels of the target column
+levels(train.data$Label) <- c("Background", "Presence") # rename 0s and 1s 
 
 #################
 # GBM model setup
@@ -398,7 +400,7 @@ levels(train.data$Label) <- c("Background", "Presence") # Setup levels of the ta
 
 gbm_model <- train(
   x = train.data[, 1:19], # 19 first columns with climate data
-  y = train.data[[20]], # presence or background points
+  y = train.data[, 20], # presence or background points
   method = "gbm", # Gradient boosting machine
   metric = "ROC", # ROC for model selection
   trControl = trainControl(
@@ -443,7 +445,7 @@ train_plot <- ggplot(roc_df, aes(x = fpr, y = tpr)) +
   labs(
     title = paste("GBM Training ROC"),
     subtitle = paste("AUC =", round(mean(gbm_model$resample$ROC), 3)),
-    x = "Specificity",
+    x = "1 - Specificity",
     y = "Sensitivity"
   ) +
   theme_minimal(base_size = 14)
@@ -459,11 +461,11 @@ GBM testing ROC
 ```{r}
 # Loading test data and transforming labels to factor
 test.data <- test.data.30
-test.data$Label <- as.factor(test.data$Label)
-levels(test.data$Label) <- c("Background", "Presence")
+test.data$Label <- as.factor(test.data$Label) # set as a factor
+levels(test.data$Label) <- c("Background", "Presence") # rename 0s and 1s
 
 # Forecasts for test data using our trained model
-predictions <- predict(gbm_model, test.data[, 1:20], n.trees = 100, type = "prob")
+predictions <- predict(gbm_model, test.data[, 1:20], type = "prob")
 
 # Extract probabilities
 prob_positive <- predictions$Presence
@@ -487,7 +489,7 @@ test_plot <- ggplot(roc_df, aes(x = fpr, y = tpr)) +
   labs(
     title = paste("GBM Testing ROC"),
     subtitle = paste("AUC =", round(auc(roc_curve), 3)),
-    x = "Specificity",
+    x = "1 - Specificity",
     y = "Sensitivity"
   ) +
   theme_minimal(base_size = 14)
@@ -556,7 +558,5 @@ plot(model_pred_masked$Presence, main="Green Treefrog Species Distribution Model
      col = colorRampPalette(c("white", "darkgreen"))(100),
      range = c(0, 1))
 plot(contiguous_us_vect, add=TRUE)
-
-
 
 ```
