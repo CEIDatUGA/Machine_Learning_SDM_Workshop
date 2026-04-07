@@ -162,7 +162,7 @@ Keep only occurrences in the contiguous U.S.
 
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 # this step take some time to run  
-# go to the slides to talk about next step
+# time for 1 or 2 questions
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
 ```{r}
