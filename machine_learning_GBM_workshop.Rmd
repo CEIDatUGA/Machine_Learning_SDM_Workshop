@@ -14,27 +14,27 @@ knitr::opts_chunk$set(echo = TRUE)
 Let's start loading some libraries
 
 ```{r}
-#install.packages("pROC") # if not installed
+#install.packages("pROC") 
 library(pROC)
-#install.packages("gbm") # if not installed
+#install.packages("gbm") 
 library(gbm)
-#install.packages("dismo") # if not installed
+#install.packages("dismo") 
 library(dismo)
-#install.packages("reshape2") # if not installed
+#install.packages("reshape2") 
 library(reshape2)
-#install.packages("dplyr") # if not installed
+#install.packages("dplyr") 
 library(dplyr)
-#install.packages("geodata") # if not installed
+#install.packages("geodata") 
 library(geodata)
-#install.packages("terra") # if not installed
+#install.packages("terra") 
 library(terra)
-#install.packages("tigris") # if not installed
+#install.packages("tigris") 
 library(tigris)
-#install.packages("sf") # if not installed
+#install.packages("sf") 
 library(sf)
-#install.packages("ggplot2") # if not installed
+#install.packages("ggplot2") 
 library(ggplot2)
-#install.packages("caret")   # run once
+#install.packages("caret") 
 library(caret)
 ```
 
